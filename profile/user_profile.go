@@ -17,7 +17,7 @@ type UserProfile struct {
 		Age          int  `json:"age"`
 		BodyHeight   int  `json:"bodyHeight"`
 		BodyWeight   int  `json:"bodyWeight"`
-	}
+	} `json:"health_profile"`
 }
 
 func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
