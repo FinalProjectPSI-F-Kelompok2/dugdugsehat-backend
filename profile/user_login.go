@@ -6,6 +6,7 @@ import (
 
 	"github.com/FinalProjectPSI-F-Kelompok2/dugdugsehat-backend/model"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx"
 )
 
 type LoginProfile struct {
@@ -32,8 +33,16 @@ func Login(db *model.DbCon) gin.HandlerFunc {
 
 		var dblp LoginProfile
 		db.Db.QueryRow("SELECT * FROM users WHERE email=$1 LIMIT 1", lp.Email).Scan(&dblp.Email, &dblp.Password)
+
+		var credentialsValidStr string
+		if dblp.Password == lp.Password {
+			credentialsValidStr = "user valid"
+		} else {
+			credentialsValidStr = "user invalid"
+		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"valid": dblp.Password == lp.Password,
+			"status": credentialsValidStr,
 		})
 	}
 }
@@ -43,7 +52,7 @@ func Register(db *model.DbCon) gin.HandlerFunc {
 		var rp RegisterProfile
 		if c.BindJSON(&rp) != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "server error",
+				"status": "server error",
 			})
 			return
 		}
@@ -51,7 +60,7 @@ func Register(db *model.DbCon) gin.HandlerFunc {
 
 		if len(rp.Email) == 0 || len(rp.Password) == 0 || len(rp.Name) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"error": "some fields are empty",
+				"status": "some fields are empty",
 			})
 			return
 		}
@@ -61,27 +70,30 @@ func Register(db *model.DbCon) gin.HandlerFunc {
 		db.Db.QueryRow("SELECT email FROM users WHERE email=$1 LIMIT 1", rp.Email).Scan(&emails)
 		if len(emails) > 0 {
 			c.JSON(http.StatusForbidden, gin.H{
-				"error": "email exists",
+				"status": "email exists",
 			})
 			return
 		}
 
-		if r, err := db.Db.Query("INSERT INTO users VALUES ($1, $2)", rp.Email, rp.Password); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "db error",
-			})
-			return
-		} else {
-			r.Close()
-		}
+		var r *pgx.Rows
+		var err error
 
-		if r, err := db.Db.Query("INSERT INTO profile VALUES ($1, $2, null, null, null, false)", rp.Email, rp.Name); err != nil {
+		r, err = db.Db.Query("INSERT INTO users VALUES ($1, $2)", rp.Email, rp.Password)
+		defer r.Close()
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "db error",
 			})
 			return
-		} else {
-			r.Close()
+		}
+
+		r, err = db.Db.Query("INSERT INTO profile VALUES ($1, $2, null, null, null, false)", rp.Email, rp.Name)
+		defer r.Close()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "db error",
+			})
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{

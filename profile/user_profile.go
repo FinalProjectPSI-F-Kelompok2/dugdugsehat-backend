@@ -20,16 +20,12 @@ type UserProfile struct {
 	}
 }
 
-type ProfileRequest struct {
-	Email string `json:"email"`
-}
-
 func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var up UserProfile
 		if c.BindJSON(&up) != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "error in server",
+				"status": "error in server",
 			})
 			return
 		}
@@ -42,7 +38,7 @@ func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 			up.HealthProfile.BodyHeight,
 			up.HealthProfile.BodyWeight,
 		)
-		r.Close()
+		defer r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "db error",
@@ -57,14 +53,8 @@ func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 
 func GetProfile(db *model.DbCon) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var pr ProfileRequest
-		if c.BindJSON(&pr) != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "error in server",
-			})
-			return
-		}
-		r := db.Db.QueryRow("SELECT * FROM profile WHERE email=$1", pr.Email)
+		email := c.GetHeader("email")
+		r := db.Db.QueryRow("SELECT * FROM profile WHERE email=$1", email)
 		var up UserProfile
 		r.Scan(
 			&up.User.Email,
@@ -74,6 +64,12 @@ func GetProfile(db *model.DbCon) gin.HandlerFunc {
 			&up.HealthProfile.Age,
 			&up.HealthProfile.GenderIsMale,
 		)
+		if len(up.User.Email) <= 0 {
+			c.JSON(http.StatusNotFound, gin.H{
+				"status": "user not found",
+			})
+			return
+		}
 		c.JSON(http.StatusOK, &up)
 	}
 }
