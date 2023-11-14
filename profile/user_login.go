@@ -9,14 +9,14 @@ import (
 )
 
 type LoginProfile struct {
-	Username string `json: "username"`
-	Password string `json: "password"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 type RegisterProfile struct {
-	Email    string `json: "email"`
-	Name     string `json: "name"`
-	Password string `json: "password"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Password string `json:"password"`
 }
 
 func Login(db *model.DbCon) gin.HandlerFunc {
@@ -29,8 +29,11 @@ func Login(db *model.DbCon) gin.HandlerFunc {
 			})
 			return
 		}
+
+		var dblp LoginProfile
+		db.Db.QueryRow("SELECT * FROM users WHERE email=$1 LIMIT 1", lp.Email).Scan(&dblp.Email, &dblp.Password)
 		c.JSON(http.StatusOK, gin.H{
-			"valid": true,
+			"valid": dblp.Password == lp.Password,
 		})
 	}
 }
@@ -72,7 +75,7 @@ func Register(db *model.DbCon) gin.HandlerFunc {
 			r.Close()
 		}
 
-		if r, err := db.Db.Query("INSERT INTO profile VALUES ($1, $2, null, null, false)", rp.Email, rp.Name); err != nil {
+		if r, err := db.Db.Query("INSERT INTO profile VALUES ($1, $2, null, null, null, false)", rp.Email, rp.Name); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "db error",
 			})
