@@ -20,6 +20,9 @@ func main() {
 	// User Login
 	router.POST("/login", profile.Login(&db))
 	router.POST("/register", profile.Register(&db))
+	router.POST("/profile", profile.GetProfile(&db))
+	router.POST("/edit-profile", profile.UpdateProfile(&db))
 	router.Run(":8080")
+
 	db.CloseDb()
 }
