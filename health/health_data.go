@@ -18,9 +18,9 @@ type SaveDataRequest struct {
 }
 
 type HealthData struct {
-	Date time.Time `sql:"measure_date"`
+	Date time.Time `sql:"measureDate"`
 	Ecg  float32   `sql:"ecg"`
-	Hr   int       `sql:"heart_rate"`
+	Hr   int       `sql:"heartRate"`
 }
 
 func SaveHealthData(db *model.DbCon) gin.HandlerFunc {
