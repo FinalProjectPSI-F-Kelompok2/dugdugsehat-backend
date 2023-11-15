@@ -79,7 +79,7 @@ func Register(db *model.DbCon) gin.HandlerFunc {
 		var err error
 
 		r, err = db.Db.Query("INSERT INTO users VALUES ($1, $2)", rp.Email, rp.Password)
-		defer r.Close()
+		r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "db error",
@@ -88,7 +88,7 @@ func Register(db *model.DbCon) gin.HandlerFunc {
 		}
 
 		r, err = db.Db.Query("INSERT INTO profile VALUES ($1, $2, null, null, null, false)", rp.Email, rp.Name)
-		defer r.Close()
+		r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "db error",

@@ -65,7 +65,7 @@ func GetHealthData(db *model.DbCon) gin.HandlerFunc {
 		}
 
 		r, err := db.Db.Query("SELECT measure_date, ecg, heart_rate FROM health_data WHERE email=$1 ORDER BY measure_date DESC LIMIT $2", email, rowLimit)
-		defer r.Close()
+		r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": err.Error(),

@@ -38,7 +38,7 @@ func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 			up.HealthProfile.BodyHeight,
 			up.HealthProfile.BodyWeight,
 		)
-		defer r.Close()
+		r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status": "db error",
