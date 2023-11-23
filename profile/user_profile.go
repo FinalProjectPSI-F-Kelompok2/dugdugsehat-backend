@@ -5,12 +5,14 @@ import (
 
 	"github.com/FinalProjectPSI-F-Kelompok2/dugdugsehat-backend/model"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx"
 )
 
 type UserProfile struct {
 	User struct {
-		Email string `json:"email"`
-		Name  string `json:"name"`
+		Email    string `json:"email"`
+		Name     string `json:"name"`
+		Password string `json:"password"`
 	} `json:"user"`
 	HealthProfile struct {
 		GenderIsMale bool `json:"genderIsMale"`
@@ -29,7 +31,11 @@ func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 			})
 			return
 		}
-		r, err := db.Db.Query(
+
+		var r *pgx.Rows
+		var err error
+
+		r, err = db.Db.Query(
 			"UPDATE profile SET full_name=$2, sex=$3, age=$4, body_height=$5, body_weight=$6 WHERE email=$1",
 			up.User.Email,
 			up.User.Name,
@@ -45,6 +51,22 @@ func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 			})
 			return
 		}
+
+		if len(up.User.Password) > 0 {
+			r, err = db.Db.Query(
+				"UPDATE users SET pass=$2 WHERE email=$1",
+				up.User.Email,
+				up.User.Password,
+			)
+			r.Close()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status": "db error",
+				})
+				return
+			}
+		}
+
 		c.JSON(http.StatusOK, gin.H{
 			"status": "edit ok",
 		})
