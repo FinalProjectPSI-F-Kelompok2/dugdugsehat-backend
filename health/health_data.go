@@ -12,15 +12,15 @@ import (
 type SaveDataRequest struct {
 	Email string `json:"email"`
 	Data  struct {
-		Ecg float32 `json:"ecg"`
-		Hr  int     `json:"hr"`
+		Type  string `json:"type"`
+		Value int    `json:"value"`
 	} `json:"data"`
 }
 
 type HealthData struct {
-	Date time.Time `sql:"measureDate"`
-	Ecg  float32   `sql:"ecg"`
-	Hr   int       `sql:"heartRate"`
+	Date     time.Time `json:"date" sql:"h.measure_date"`
+	TypeName string    `json:"type" sql:"t.type_name"`
+	Value    int       `json:"value" sql:"h.measure_value"`
 }
 
 func SaveHealthData(db *model.DbCon) gin.HandlerFunc {
@@ -33,7 +33,11 @@ func SaveHealthData(db *model.DbCon) gin.HandlerFunc {
 			return
 		}
 		dataTimestamp := time.Now()
-		r, err := db.Db.Query("INSERT INTO health_data VALUES ($1, $2, $3, $4)", sdr.Email, dataTimestamp, sdr.Data.Ecg, sdr.Data.Hr)
+		measureTypeId := 1
+		if sdr.Data.Type == "ecg" {
+			measureTypeId = 0
+		}
+		r, err := db.Db.Query("INSERT INTO health_data VALUES ($1, $2, $3, $4)", sdr.Email, measureTypeId, dataTimestamp, sdr.Data.Value)
 		r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -64,7 +68,11 @@ func GetHealthData(db *model.DbCon) gin.HandlerFunc {
 			return
 		}
 
-		r, err := db.Db.Query("SELECT measure_date, ecg, heart_rate FROM health_data WHERE email=$1 ORDER BY measure_date DESC LIMIT $2", email, rowLimit)
+		r, err := db.Db.Query(
+			"SELECT h.measure_date, h.measure_value, t.type_name FROM health_data AS h, measure_type AS t WHERE h.email=$1 AND h.type_id=t.type_id ORDER BY measure_date DESC LIMIT $2",
+			email,
+			rowLimit,
+		)
 		defer r.Close()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -79,7 +87,7 @@ func GetHealthData(db *model.DbCon) gin.HandlerFunc {
 
 		for r.Next() {
 			var hd HealthData
-			r.Scan(&hd.Date, &hd.Ecg, &hd.Hr)
+			r.Scan(&hd.Date, &hd.Value, &hd.TypeName)
 			res = append(res, hd)
 		}
 
