@@ -23,12 +23,12 @@ func main() {
 	router.POST("/register", profile.Register(&db))
 
 	// User Profile
-	router.GET("/profile", profile.GetProfile(&db))
-	router.POST("/profile", profile.UpdateProfile(&db))
+	router.POST("/profile/get", profile.GetProfile(&db))
+	router.POST("/profile/update", profile.UpdateProfile(&db))
 
 	// Health Data
-	router.GET("/health-data", health.GetHealthData(&db))
-	router.POST("/health-data", health.SaveHealthData(&db))
+	router.POST("/health/get", health.GetHealthData(&db))
+	router.POST("/health/save", health.SaveHealthData(&db))
 	router.Run(":8080")
 
 	db.CloseDb()

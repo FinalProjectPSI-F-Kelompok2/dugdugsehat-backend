@@ -22,6 +22,10 @@ type UserProfile struct {
 	} `json:"healthProfile"`
 }
 
+type UserProfileRequest struct {
+	Email string `json:"email"`
+}
+
 func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var up UserProfile
@@ -75,8 +79,14 @@ func UpdateProfile(db *model.DbCon) gin.HandlerFunc {
 
 func GetProfile(db *model.DbCon) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		email := c.GetHeader("email")
-		r := db.Db.QueryRow("SELECT * FROM profile WHERE email=$1", email)
+		var upr UserProfileRequest
+		if (c.BindJSON(&upr)) != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "error in server",
+			})
+		}
+
+		r := db.Db.QueryRow("SELECT * FROM profile WHERE email=$1", upr.Email)
 		var up UserProfile
 		r.Scan(
 			&up.User.Email,

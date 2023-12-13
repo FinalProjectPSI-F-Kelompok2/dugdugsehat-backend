@@ -23,6 +23,11 @@ type HealthData struct {
 	Value    int       `json:"value" sql:"h.measure_value"`
 }
 
+type GetDataRequest struct {
+	Email string `'json:"email"`
+	Row   string `json:"row"`
+}
+
 func SaveHealthData(db *model.DbCon) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var sdr SaveDataRequest
@@ -53,14 +58,17 @@ func SaveHealthData(db *model.DbCon) gin.HandlerFunc {
 
 func GetHealthData(db *model.DbCon) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		email := c.GetHeader("email")
-		rowLimit := c.GetHeader("row")
-
+		var gdr GetDataRequest
+		if (c.BindJSON(&gdr)) != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status": "error in server",
+			})
+		}
 		// check if email is registered
 		var err error
 
 		var emailChk string
-		db.Db.QueryRow("SELECT email FROM profile WHERE email=$1", email).Scan(&emailChk)
+		db.Db.QueryRow("SELECT email FROM profile WHERE email=$1", gdr.Email).Scan(&emailChk)
 		if len(emailChk) <= 0 {
 			c.JSON(http.StatusNotFound, gin.H{
 				"status": "user not found",
@@ -70,8 +78,8 @@ func GetHealthData(db *model.DbCon) gin.HandlerFunc {
 
 		r, err := db.Db.Query(
 			"SELECT h.measure_date, h.measure_value, t.type_name FROM health_data AS h, measure_type AS t WHERE h.email=$1 AND h.type_id=t.type_id ORDER BY measure_date DESC LIMIT $2",
-			email,
-			rowLimit,
+			gdr.Email,
+			gdr.Row,
 		)
 		defer r.Close()
 		if err != nil {
@@ -92,7 +100,7 @@ func GetHealthData(db *model.DbCon) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"email": email,
+			"email": gdr.Email,
 			"row":   len(res),
 			"data":  res,
 		})
